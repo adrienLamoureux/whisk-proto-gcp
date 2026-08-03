@@ -1,0 +1,1 @@
+# whisk-proto-gcp
