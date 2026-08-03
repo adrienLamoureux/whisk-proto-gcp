@@ -1,0 +1,6 @@
+{
+  "_comment": "Copy to .firebaserc and set your project id. deploy/setup.sh writes it for you.",
+  "projects": {
+    "default": "your-project-id"
+  }
+}

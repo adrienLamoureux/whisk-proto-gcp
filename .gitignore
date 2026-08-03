@@ -216,3 +216,14 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- project ---
+backend/.venv/
+backend/.localdata/
+frontend/dist/
+frontend/node_modules/
+.env
+frontend/tsconfig.tsbuildinfo
+backend/.pytest_cache/
+backend/*.egg-info/
+.firebaserc

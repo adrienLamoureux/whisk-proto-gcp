@@ -1,0 +1,87 @@
+/* Design tokens. Hand-built, no framework -- same call as the AWS repo's ADR-003.
+ *
+ * Two independent axes:
+ *   [data-theme]  -- hue identity (10 palettes, driven by the agent's set_theme tool)
+ *   [data-scheme] -- dark / light brightness
+ *
+ * Every palette defines only --wsk-h* (hue) and --wsk-accent*; the surface and
+ * text ramps below derive from those, so adding an 11th theme is three lines,
+ * not a full palette. */
+
+:root {
+  --wsk-h: 340;
+  --wsk-h2: 280;
+  --wsk-sat: 62%;
+
+  --wsk-radius: 12px;
+  --wsk-radius-sm: 8px;
+  --wsk-gap: 16px;
+  --wsk-maxw: 1180px;
+
+  --wsk-font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --wsk-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+
+  --wsk-shadow: 0 1px 2px rgb(0 0 0 / 0.16), 0 8px 24px -12px rgb(0 0 0 / 0.34);
+  --wsk-speed: 160ms;
+}
+
+/* --- palettes ---------------------------------------------------------- */
+[data-theme="sakura"]  { --wsk-h: 340; --wsk-h2: 292; --wsk-sat: 64%; }
+[data-theme="moonrise"]{ --wsk-h: 232; --wsk-h2: 268; --wsk-sat: 56%; }
+[data-theme="bamboo"]  { --wsk-h: 146; --wsk-h2: 172; --wsk-sat: 46%; }
+[data-theme="ember"]   { --wsk-h: 22;  --wsk-h2: 44;  --wsk-sat: 74%; }
+[data-theme="void"]    { --wsk-h: 268; --wsk-h2: 220; --wsk-sat: 38%; }
+[data-theme="glacier"] { --wsk-h: 194; --wsk-h2: 216; --wsk-sat: 58%; }
+[data-theme="dusk"]    { --wsk-h: 312; --wsk-h2: 258; --wsk-sat: 44%; }
+[data-theme="aurora"]  { --wsk-h: 162; --wsk-h2: 196; --wsk-sat: 62%; }
+[data-theme="crimson"] { --wsk-h: 356; --wsk-h2: 12;  --wsk-sat: 66%; }
+[data-theme="storm"]   { --wsk-h: 210; --wsk-h2: 196; --wsk-sat: 18%; }
+
+/* --- dark (default) ---------------------------------------------------- */
+:root,
+[data-scheme="dark"] {
+  --wsk-bg: hsl(var(--wsk-h) 22% 7%);
+  --wsk-bg-2: hsl(var(--wsk-h) 20% 10%);
+  --wsk-surface: hsl(var(--wsk-h) 18% 13%);
+  --wsk-surface-2: hsl(var(--wsk-h) 16% 17%);
+  --wsk-border: hsl(var(--wsk-h) 14% 24%);
+  --wsk-border-soft: hsl(var(--wsk-h) 14% 19%);
+
+  --wsk-text: hsl(var(--wsk-h) 12% 95%);
+  --wsk-text-dim: hsl(var(--wsk-h) 8% 68%);
+  --wsk-text-faint: hsl(var(--wsk-h) 8% 50%);
+
+  --wsk-accent: hsl(var(--wsk-h) var(--wsk-sat) 66%);
+  --wsk-accent-2: hsl(var(--wsk-h2) var(--wsk-sat) 68%);
+  --wsk-accent-ink: hsl(var(--wsk-h) 40% 8%);
+  --wsk-accent-soft: hsl(var(--wsk-h) var(--wsk-sat) 66% / 0.14);
+
+  --wsk-ok: hsl(148 52% 58%);
+  --wsk-warn: hsl(38 82% 62%);
+  --wsk-danger: hsl(2 68% 64%);
+}
+
+/* --- light -------------------------------------------------------------- */
+[data-scheme="light"] {
+  --wsk-bg: hsl(var(--wsk-h) 34% 98%);
+  --wsk-bg-2: hsl(var(--wsk-h) 30% 96%);
+  --wsk-surface: hsl(0 0% 100%);
+  --wsk-surface-2: hsl(var(--wsk-h) 30% 97%);
+  --wsk-border: hsl(var(--wsk-h) 20% 86%);
+  --wsk-border-soft: hsl(var(--wsk-h) 20% 91%);
+
+  --wsk-text: hsl(var(--wsk-h) 26% 13%);
+  --wsk-text-dim: hsl(var(--wsk-h) 12% 40%);
+  --wsk-text-faint: hsl(var(--wsk-h) 10% 55%);
+
+  --wsk-accent: hsl(var(--wsk-h) calc(var(--wsk-sat) - 4%) 42%);
+  --wsk-accent-2: hsl(var(--wsk-h2) calc(var(--wsk-sat) - 4%) 46%);
+  --wsk-accent-ink: hsl(0 0% 100%);
+  --wsk-accent-soft: hsl(var(--wsk-h) var(--wsk-sat) 46% / 0.10);
+
+  --wsk-ok: hsl(148 46% 34%);
+  --wsk-warn: hsl(32 74% 40%);
+  --wsk-danger: hsl(2 62% 46%);
+
+  --wsk-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 8px 24px -14px rgb(0 0 0 / 0.20);
+}

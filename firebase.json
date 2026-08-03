@@ -1,0 +1,59 @@
+{
+  "hosting": {
+    "public": "frontend/dist",
+    "ignore": ["**/.*", "**/node_modules/**", "**/*.map"],
+    "cleanUrls": true,
+    "trailingSlash": false,
+
+    "_comment_rewrites": [
+      "Firebase Hosting is the CloudFront equivalent: a global CDN with free-tier",
+      "TLS and custom domains, and -- critically -- NO forwarding rule. The literal",
+      "GCP analogue of CloudFront-in-front-of-S3 is Cloud CDN behind a global",
+      "external Application Load Balancer, which bills ~$18/month before the first",
+      "request. Firebase Hosting is $0 idle. See docs/adr/005-firebase-hosting.md.",
+      "",
+      "Rewrites are FIRST-MATCH-WINS, so the SPA catch-all must stay last or it",
+      "swallows the API. Everything dynamic proxies to the same Cloud Run service,",
+      "which means the browser sees ONE origin: no CORS preflight on any API call,",
+      "and no third-party cookie problems."
+    ],
+    "rewrites": [
+      { "source": "/api/**", "run": { "serviceId": "whisk-studio", "region": "us-central1" } },
+      { "source": "/a2a/**", "run": { "serviceId": "whisk-studio", "region": "us-central1" } },
+      { "source": "/mcp/**", "run": { "serviceId": "whisk-studio", "region": "us-central1" } },
+      { "source": "/media/**", "run": { "serviceId": "whisk-studio", "region": "us-central1" } },
+      { "source": "/config.json", "run": { "serviceId": "whisk-studio", "region": "us-central1" } },
+      { "source": "/health", "run": { "serviceId": "whisk-studio", "region": "us-central1" } },
+      { "source": "**", "destination": "/index.html" }
+    ],
+
+    "_comment_headers": [
+      "Vite emits content-hashed asset filenames, so /assets/* can be immutable for",
+      "a year -- a changed file gets a new name. index.html must NOT be cached, or",
+      "the CDN keeps serving an old document pointing at deleted asset hashes, which",
+      "is the classic 'deployed but users see the old app' failure."
+    ],
+    "headers": [
+      {
+        "source": "/assets/**",
+        "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+      },
+      {
+        "source": "/index.html",
+        "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+      },
+      {
+        "source": "**",
+        "headers": [
+          { "key": "X-Content-Type-Options", "value": "nosniff" },
+          { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+          { "key": "X-Frame-Options", "value": "DENY" },
+          {
+            "key": "Permissions-Policy",
+            "value": "geolocation=(), microphone=(), camera=(), payment=()"
+          }
+        ]
+      }
+    ]
+  }
+}
