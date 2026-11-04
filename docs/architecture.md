@@ -17,7 +17,7 @@ signs in, generates images, browses their library and the community gallery, ask
 questions about how the system works, and can drive all of it by talking to it.
 
 It is a port of the interesting slice of an AWS/Bedrock original
-(`static-web-aws-ai`), rebuilt on Google's stack.
+([`whisk-studio`](https://github.com/adrienLamoureux/whisk-studio)), rebuilt on Google's stack.
 
 **The governing constraint is that no component may bill when idle.** That single
 rule decided more of this design than any other consideration — four of the
