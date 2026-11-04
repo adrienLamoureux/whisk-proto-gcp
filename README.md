@@ -5,7 +5,7 @@ on Cloud Run**, behind **Firebase Hosting**, with a React frontend and Identity
 Platform sign-in.
 
 It is a port of the interesting slice of an AWS/Bedrock creative studio
-([`static-web-aws-ai`](../static-web-aws-ai)), rebuilt on Google's stack to learn
+([`whisk-studio`](https://github.com/adrienLamoureux/whisk-studio)), rebuilt on Google's stack to learn
 it properly. The design constraint was **nothing may bill when idle** — which
 turned out to drive most of the decisions worth talking about.
 
