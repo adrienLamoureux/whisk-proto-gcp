@@ -1,0 +1,200 @@
+# dev-kit: plan -> implement -> review on GitHub, with two human gates.
+#
+# 1. Label one of your issues `dev-kit:plan`. dev-kit plans it and opens a draft PR on
+#    `dev-kit/issue-<n>` that holds only `.dev-kit/issue-<n>/plan.md`.
+# 2. Read the plan. To approve it, label that PR `dev-kit:implement`. dev-kit implements the
+#    plan, runs the repo's gates, reviews the diff and pushes to the same branch. The recap is
+#    posted as a PR comment. Label the PR again to apply a `changes-required` review.
+# 3. You review the PR and merge it. Nothing here merges, deploys or touches `main`.
+#
+# The repo is public, so both jobs run only for issues and labels from the repo owner: text in
+# someone else's issue never reaches the agent. dev-kit is loaded with --plugin-dir from
+# adrienLamoureux/claude-skills, as in prototypes/ai-sdlc/trial.sh there.
+# Pushes made with GITHUB_TOKEN do not start other workflows; re-run CI from the PR if needed.
+# Billing: the CLAUDE_CODE_OAUTH_TOKEN secret (from `claude setup-token`), so runs count against
+# your Claude plan, not an API balance.
+
+name: dev-kit
+
+on:
+  issues:
+    types: [labeled]
+  pull_request:
+    types: [labeled]
+
+concurrency:
+  group: dev-kit-${{ github.event.issue.number || github.event.pull_request.number }}
+  cancel-in-progress: false
+
+env:
+  DEV_KIT_REF: main # claude-skills branch or tag to load dev-kit from
+  PLAN_BUDGET_USD: "3"
+  IMPLEMENT_BUDGET_USD: "8"
+  REVIEW_BUDGET_USD: "4"
+
+jobs:
+  plan:
+    if: >-
+      github.event_name == 'issues' &&
+      github.event.label.name == 'dev-kit:plan' &&
+      github.actor == github.repository_owner &&
+      github.event.issue.user.login == github.repository_owner
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+    env:
+      N: ${{ github.event.issue.number }}
+      SLUG: issue-${{ github.event.issue.number }}
+      BRANCH: dev-kit/issue-${{ github.event.issue.number }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch dev-kit
+        run: git clone --quiet --depth 1 --branch "$DEV_KIT_REF" https://github.com/adrienLamoureux/claude-skills.git "$RUNNER_TEMP/claude-skills"
+
+      - name: Write the ticket from the issue
+        env:
+          TITLE: ${{ github.event.issue.title }}
+          BODY: ${{ github.event.issue.body }}
+        run: |
+          mkdir -p ".dev-kit/$SLUG"
+          printf '# Issue #%s: %s\n\n%s\n' "$N" "$TITLE" "$BODY" > ".dev-kit/$SLUG/ticket.md"
+
+      - name: Plan
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            /dev-kit:plan .dev-kit/${{ env.SLUG }}/ticket.md DIR=.dev-kit/${{ env.SLUG }}
+
+            Headless run in GitHub Actions: nobody can answer questions, so use the defaults and
+            do not ask. Stop after the present step; do not run the approve step.
+          claude_args: >-
+            --plugin-dir ${{ runner.temp }}/claude-skills/plugins/dev-kit
+            --model sonnet
+            --max-budget-usd ${{ env.PLAN_BUDGET_USD }}
+            --allowedTools "Read,Grep,Glob,Task,Agent,Skill,Write(.dev-kit/**),Edit(.dev-kit/**),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git rev-parse:*),Bash(git ls-files:*),Bash(python3 ${{ runner.temp }}/claude-skills/plugins/dev-kit/skills/plan/scripts/plan_tool.py:*)"
+
+      - name: Open a draft PR with the plan
+        env:
+          TITLE: ${{ github.event.issue.title }}
+        run: |
+          test -f ".dev-kit/$SLUG/plan.md" || { echo "::error::dev-kit wrote no plan.md"; exit 1; }
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          git add ".dev-kit/$SLUG"
+          git commit --quiet -m "dev-kit: plan for #$N"
+          git push --quiet -u origin "$BRANCH"
+          printf '%s\n' \
+            "Plan for #$N, written by dev-kit. Nothing is implemented yet." "" \
+            "- Plan: \`.dev-kit/$SLUG/plan.md\`" \
+            "- To approve it, add the label \`dev-kit:implement\` to this PR." \
+            "- To change it, edit plan.md on this branch before labelling, or close this PR and delete the branch to re-plan." "" \
+            "Closes #$N" > "$RUNNER_TEMP/pr-body.md"
+          URL=$(gh pr create --draft --head "$BRANCH" --title "dev-kit: $TITLE" --body-file "$RUNNER_TEMP/pr-body.md")
+          gh issue comment "$N" --body "dev-kit planned this issue: $URL"
+          gh issue edit "$N" --remove-label "dev-kit:plan"
+
+      - name: Report a failure on the issue
+        if: failure()
+        run: |
+          gh issue comment "$N" --body "dev-kit plan failed: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+
+  implement:
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.label.name == 'dev-kit:implement' &&
+      github.actor == github.repository_owner &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      startsWith(github.event.pull_request.head.ref, 'dev-kit/issue-')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+    env:
+      PR: ${{ github.event.pull_request.number }}
+      BRANCH: ${{ github.event.pull_request.head.ref }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Fetch dev-kit
+        run: git clone --quiet --depth 1 --branch "$DEV_KIT_REF" https://github.com/adrienLamoureux/claude-skills.git "$RUNNER_TEMP/claude-skills"
+
+      # Repo-specific: what the gates need (`make test`, `make lint`).
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install the repo's dependencies
+        run: make install
+
+      - name: Approve the plan (the label is your approval)
+        run: |
+          SLUG="${BRANCH#dev-kit/}"
+          echo "SLUG=$SLUG" >> "$GITHUB_ENV"
+          python3 "$RUNNER_TEMP/claude-skills/plugins/dev-kit/skills/plan/scripts/plan_tool.py" approve ".dev-kit/$SLUG/plan.md"
+
+      - name: Implement
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            /dev-kit:implement ${{ env.SLUG }}
+
+            Headless run in GitHub Actions: nobody can answer questions, so use the defaults.
+            The plan is approved. Stay on the current branch. Do not commit or push.
+          claude_args: >-
+            --plugin-dir ${{ runner.temp }}/claude-skills/plugins/dev-kit
+            --model sonnet
+            --max-budget-usd ${{ env.IMPLEMENT_BUDGET_USD }}
+            --allowedTools "Read,Grep,Glob,Task,Agent,Skill,Write,Edit,Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git rev-parse:*),Bash(git ls-files:*),Bash(python3 ${{ runner.temp }}/claude-skills/plugins/dev-kit/skills/plan/scripts/plan_tool.py:*),Bash(make test:*),Bash(make lint:*),Bash(backend/.venv/bin/python -m pytest:*),Bash(backend/.venv/bin/ruff check:*),Bash(npm --prefix frontend run:*),Bash(python3 -m pytest:*),Bash(python3 -m unittest:*)"
+
+      - name: Review
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            /dev-kit:review ${{ env.SLUG }}
+
+            Headless run in GitHub Actions: nobody can answer questions, so use the defaults.
+          claude_args: >-
+            --plugin-dir ${{ runner.temp }}/claude-skills/plugins/dev-kit
+            --model sonnet
+            --max-budget-usd ${{ env.REVIEW_BUDGET_USD }}
+            --allowedTools "Read,Grep,Glob,Task,Agent,Skill,Write(.dev-kit/**),Edit(.dev-kit/**),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git rev-parse:*),Bash(git ls-files:*),Bash(python3 ${{ runner.temp }}/claude-skills/plugins/dev-kit/skills/plan/scripts/plan_tool.py:*),Bash(make test:*),Bash(make lint:*),Bash(backend/.venv/bin/python -m pytest:*),Bash(backend/.venv/bin/ruff check:*),Bash(npm --prefix frontend run:*),Bash(python3 -m pytest:*),Bash(python3 -m unittest:*)"
+
+      - name: Push and post the recap
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nothing to commit."
+          else
+            git commit --quiet -m "dev-kit: implement and review $SLUG"
+            git push --quiet origin "HEAD:$BRANCH"
+          fi
+          RECAP=".dev-kit/$SLUG/recap.md"
+          [ -f "$RECAP" ] || RECAP=".dev-kit/$SLUG/review.md"
+          if [ -f "$RECAP" ]; then gh pr comment "$PR" --body-file "$RECAP"; fi
+          gh pr edit "$PR" --remove-label "dev-kit:implement"
+
+      - name: Report a failure on the PR
+        if: failure()
+        run: |
+          gh pr comment "$PR" --body "dev-kit implement or review failed: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
