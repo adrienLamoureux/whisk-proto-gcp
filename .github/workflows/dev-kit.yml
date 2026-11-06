@@ -13,6 +13,8 @@
 # Pushes made with GITHUB_TOKEN do not start other workflows; re-run CI from the PR if needed.
 # Billing: the CLAUDE_CODE_OAUTH_TOKEN secret (from `claude setup-token`), so runs count against
 # your Claude plan, not an API balance.
+# Debug: set the repo variable DEV_KIT_DEBUG to true to print Claude's full output in the run
+# log. The log is public on a public repo, so turn it off again afterwards.
 
 name: dev-kit
 
@@ -69,6 +71,7 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          show_full_output: ${{ vars.DEV_KIT_DEBUG == 'true' }}
           prompt: |
             /dev-kit:plan .dev-kit/${{ env.SLUG }}/ticket.md DIR=.dev-kit/${{ env.SLUG }}
 
@@ -153,6 +156,7 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          show_full_output: ${{ vars.DEV_KIT_DEBUG == 'true' }}
           prompt: |
             /dev-kit:implement ${{ env.SLUG }}
 
@@ -168,6 +172,7 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          show_full_output: ${{ vars.DEV_KIT_DEBUG == 'true' }}
           prompt: |
             /dev-kit:review ${{ env.SLUG }}
 
