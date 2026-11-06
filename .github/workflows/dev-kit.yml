@@ -33,6 +33,9 @@ env:
   PLAN_BUDGET_USD: "3"
   IMPLEMENT_BUDGET_USD: "8"
   REVIEW_BUDGET_USD: "4"
+  # The Action stops at Claude's first final result, so a subagent left running in the
+  # background is cut off. This makes Claude wait for each dev-kit agent to finish.
+  CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: "1"
 
 jobs:
   plan:
