@@ -88,22 +88,31 @@ singular unit word when count == 1, plural ("seconds"/"minutes"/"hours") otherwi
 {
   "slug": "issue-4",
   "size": "S",
-  "approved": false,
+  "approved": true,
   "slices": [
     {
       "id": "retry-hint",
       "title": "Retry hint helper and unittest tests",
-      "owns": ["backend/app/agent/retry_hint.py", "backend/tests/test_retry_hint.py"],
+      "owns": [
+        "backend/app/agent/retry_hint.py",
+        "backend/tests/test_retry_hint.py"
+      ],
       "depends_on": [],
       "effort": "medium",
-      "gates": ["python3 -m unittest discover -s backend/tests -t backend -p test_retry_hint.py -v"],
+      "gates": [
+        "python3 -m unittest discover -s backend/tests -t backend -p test_retry_hint.py -v"
+      ],
       "acceptance": [
         "ticket gate prints OK with >= 6 tests run and 0 failures",
         "git status shows only the two new files besides .dev-kit/"
       ]
     }
   ],
-  "merge_order": ["retry-hint"],
-  "integration_gates": ["python3 -m unittest discover -s backend/tests -t backend -p test_retry_hint.py -v"]
+  "merge_order": [
+    "retry-hint"
+  ],
+  "integration_gates": [
+    "python3 -m unittest discover -s backend/tests -t backend -p test_retry_hint.py -v"
+  ]
 }
 ```
