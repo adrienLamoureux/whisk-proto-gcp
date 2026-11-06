@@ -93,6 +93,10 @@ jobs:
           test -f ".dev-kit/$SLUG/plan.md" || { echo "::error::dev-kit wrote no plan.md"; exit 1; }
           git config user.name "github-actions[bot]"
           git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          # The Action points origin at its own GitHub App token and revokes it when it ends,
+          # so push with this job's GITHUB_TOKEN instead.
+          git remote set-url origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
+          gh auth setup-git
           git switch -c "$BRANCH"
           git add ".dev-kit/$SLUG"
           git commit --quiet -m "dev-kit: plan for #$N"
@@ -190,6 +194,10 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          # The Action points origin at its own GitHub App token and revokes it when it ends,
+          # so push with this job's GITHUB_TOKEN instead.
+          git remote set-url origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
+          gh auth setup-git
           git add -A
           if git diff --cached --quiet; then
             echo "Nothing to commit."
